@@ -1,8 +1,9 @@
 .gallery {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 24px;
   width: 1128px;
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
 }
 
 .gallery-item {
@@ -27,6 +28,7 @@
 
 .image-feature {
   color: #2E2F42;
+  font-family: Montserrat;
   font-size: 12px;
   font-weight: 700;
   line-height: 1.5;
@@ -35,6 +37,7 @@
 
 .image-data {
   color: #2E2F42;
+  font-family: Montserrat;
   font-size: 12px;
   line-height: 2;
   letter-spacing: 0.04em;

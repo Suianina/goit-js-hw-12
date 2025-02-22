@@ -2,98 +2,141 @@ import iziToast from "izitoast";
 import "izitoast/dist/css/iziToast.min.css";
 import SimpleLightbox from "simplelightbox";
 import "simplelightbox/dist/simple-lightbox.min.css";
-import { fetchImages } from "./js/pixabay-api";
+import { getImages } from "./js/pixabay-api";
 import { renderImage } from "./js/render-functions";
 
-const refs = {
-    form: document.querySelector(".search-form"),
-    input: document.querySelector(".search-input"),
-    list: document.querySelector(".gallery"),
-    loader: document.querySelector(".loader"),
-    loadMoreBtn: document.querySelector(".load-more")
-};
 
-let params = { query: "", page: 1, perPage: 40, total: 0 };
-let lightbox = new SimpleLightbox(".gallery a", {
-    captions: true,
-    captionDelay: 250
+const loadMoreBtn = document.querySelector('.load-more-btn');
+const form = document.querySelector('.search-form');
+const input = document.querySelector('.search-input');
+const list = document.querySelector('.gallery');
+const loader = document.querySelector('.loader')
+
+let currentPage;
+let currentQuery = '';
+let maxPage;
+const perPage = 40;
+
+let lightbox = new SimpleLightbox('.gallery a', {
+  captions: true,
+  captionDelay: 250,
+  captionPosition: 'bottom',
+  captionsData: 'alt',
 });
 
-const toggleLoadMore = (show) => {
-    if (show) {
-        refs.loadMoreBtn.classList.remove("visually-hidden");
-        refs.loadMoreBtn.classList.add("visible");
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  currentQuery = event.target.elements.query.value.trim();
+  currentPage = 1;
+
+  if (!currentQuery) {
+    iziToast.error({
+      position: "topRight",
+      message: 'Please enter some text',
+    });
+    hideLoader();
+    return;
+  }
+
+  showLoader();
+  hideLoadBtn();
+  list.innerHTML = '';
+
+  try {
+    const data = await getImages(currentQuery, currentPage);
+    maxPage = Math.ceil(data.totalHits / perPage);
+
+    if (data.hits && data.hits.length > 0) {
+      const markup = renderImage(data.hits);
+      list.insertAdjacentHTML("beforeend", markup);
+
+      hideLoader();
+      hideLoadBtn();
+
+      lightbox.refresh();
     } else {
-        refs.loadMoreBtn.classList.add("visually-hidden");
-        refs.loadMoreBtn.classList.remove("visible");
+      iziToast.error({
+        position: "topRight",
+        message: 'Sorry, there are no images matching your search query. Please try again!',
+      })
+      hideLoader();
+      hideLoadBtn();
     }
-};
+  } catch (err) {
+    hideLoadBtn();
+    hideLoader();
 
-const toggleLoadMoreDisabled = (disabled) => {
-    if (disabled) {
-        refs.loadMoreBtn.classList.add("disabled");
-        refs.loadMoreBtn.disabled = true;
-    } else {
-        refs.loadMoreBtn.classList.remove("disabled");
-        refs.loadMoreBtn.disabled = false;
-    }
-};
+    iziToast.error({
+      position: "topRight",
+      message: 'Sorry, the request can\'t be completed at this time. Please try again',
+    })
+  }
 
-refs.form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    params.query = refs.input.value.trim();
-
-    if (!params.query)
-        return iziToast.error({
-            message: "Please enter some text",
-        });
-
-    refs.list.innerHTML = "";
-    params.page = 1;
-    params.total = 0;
-    toggleLoader(true);
-    toggleLoadMore(false);
-    await fetchAndRenderImages();
+  input.value = '';
+  updateBtnStatus();
 });
-        
-refs.loadMoreBtn.addEventListener("click", async () => {
-    params.page++;
-    toggleLoader(true);
-    toggleLoadMoreDisabled(true);
-    await fetchAndRenderImages();
-});
-   
-async function fetchAndRenderImages() {
-    try {
-        const { hits, totalHits } = await fetchImages(params.query, params.page);
-        params.total = totalHits;
 
-        if (!hits.length) return iziToast.error({
-            message: "Sorry, there are no images matching your search query. Please try again!",
-        });
-         
-        refs.list.insertAdjacentHTML("beforeend", renderImage(hits));
-        lightbox.refresh();
-        smoothScroll();
-        if (params.page * params.perPage >= params.total) {
-            iziToast.info({
-                message: "We're sorry, but you've reached the end of search results"
-            });
-            toggleLoadMore(false);
-        } else {
-            toggleLoadMore(true);
-        }
-    } catch (error) {
-      } finally {
-         toggleLoader(false);
-         toggleLoadMoreDisabled(false);
-    }
+loadMoreBtn.addEventListener('click', async () => {
+  currentPage++;
+  showLoader();
+  hideLoadBtn();
+
+  try {
+    const data = await getImages(currentQuery, currentPage);
+    const markup = renderImage(data.hits);
+    list.insertAdjacentHTML("beforeend", markup);
+    lightbox.refresh();
+    scrollPage();
+  } catch (err) {
+    console.log(err);
+    iziToast.error({
+      position: "bottomRight",
+      message: 'Sorry, the request can\'t be completed at this time. Please try again',
+    })
+  }
+
+  hideLoader();
+  updateBtnStatus();
+});
+
+function showLoadBtn() {
+  loadMoreBtn.classList.remove('visually-hidden');
 }
 
-const toggleLoader = (show) => refs.loader.classList.toggle("visually-hidden", !show);
-const smoothScroll = () => window.scrollBy({top: refs.list.firstElementChild.getBoundingClientRect().height * 2, behavior: "smooth" });
-    
-   
+function hideLoadBtn() {
+  loadMoreBtn.classList.add('visually-hidden');
+}
 
+function showLoader() {
+  loader.classList.remove('visually-hidden');
+}
 
+function hideLoader() {
+  loader.classList.add('visually-hidden');
+}
 
+function updateBtnStatus() {
+  if (currentPage >= maxPage) {
+    hideLoadBtn();
+
+    if (maxPage) {
+      iziToast.info({
+        position: "bottomRight",
+        message: 'We\'re sorry, but you\'ve reached the end of search results',
+      })
+    hideLoadBtn();
+    }
+  } else {
+    showLoadBtn();
+  }
+}
+
+function scrollPage() {
+  const liElem = list.children[0];
+  const height = liElem.getBoundingClientRect().height;
+
+  scrollBy({
+    top: height * 2,
+    behavior: "smooth",
+  });
+}
