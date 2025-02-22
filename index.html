@@ -2,18 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Search image</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
       rel="stylesheet"
     />
     <script type="module" crossorigin src="/goit-js-hw-12/index.js"></script>
     <link rel="modulepreload" crossorigin href="/goit-js-hw-12/assets/vendor-DEenWwFD.js">
     <link rel="stylesheet" crossorigin href="/goit-js-hw-12/assets/vendor-DumFYO8Z.css">
-    <link rel="stylesheet" crossorigin href="/goit-js-hw-12/assets/index-BMIbHOAC.css">
+    <link rel="stylesheet" crossorigin href="/goit-js-hw-12/assets/index-Dj9BnUQb.css">
   </head>
   <body>
     <div class="container">
@@ -26,9 +27,15 @@
         />
         <button class="search-btn" type="submit">Search</button>
       </form>
-      <div class="loader visually-hidden"></div>
-      <ul class="gallery"></ul>
-      <button class="load-more visually-hidden">Load more</button>
+      <div>
+        <ul class="gallery"></ul>
+      </div>
+      <button class="load-more-btn visually-hidden" type="button">
+        Load more
+      </button>
+      <div class="loader visually-hidden">
+        <p class="loading-text">loading..</p>
+      </div>
     </div>
   </body>
 </html>
