@@ -5,57 +5,75 @@ import "simplelightbox/dist/simple-lightbox.min.css";
 import { fetchImages } from "./js/pixabay-api";
 import { renderImage } from "./js/render-functions";
 
-const form = document.querySelector(".search-form");
-const input = document.querySelector(".search-input");
-const list = document.querySelector(".gallery");
-const loader = document.querySelector(".loader");
+const refs = {
+    form: document.querySelector(".search-form"),
+    input: document.querySelector(".search-input"),
+    list: document.querySelector(".gallery"),
+    loader: document.querySelector(".loader"),
+    loadMoreBtn: document.body.appendChild(Object.assign(document.createElement("button"), {
+        textContent: "Load more", className: "load-more visually-hidden"
+    }))
+};
 
+let params = { query: "", page: 1, perPage: 40, total: 0 };
 let lightbox = new SimpleLightbox(".gallery a", {
     captions: true,
-    captionDelay: 250,
-    captionPosition: "bottom",
-    captionsData: "alt",
+    captionDelay: 250
 });
 
-form.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const value = input.value.trim();
 
-    if (value === "") {
-        iziToast.error({
-            position: "topRight",
+refs.form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    params.query = refs.input.value.trim();
+
+    if (!params.query)
+        return iziToast.error({
             message: "Please enter some text",
         });
-        return;
-    }
 
-    list.innerHTML = "";
-    loader.classList.remove("visually-hidden");
-
+    refs.list.innerHTML = "";
+    params.page = 1;
+    toggleLoader(true);
+    await fetchAndRenderImages();
+});
+        
+refs.loadMoreBtn.addEventListener("click", async () => {
+    params.page++;
+    toggleLoader(true);
+    await fetchAndRenderImages();
+});
+   
+async function fetchAndRenderImages() {
     try {
-        console.log("Надсилаємо запит з:", value);
-        const data = await fetchImages(value);
-        console.log("Ответ от API:", data);
+        const { hits, totalHits } = await fetchImages(params.query, params.page);
+        params.total = totalHits;
 
-        if (data.hits && data.hits.length > 0) {
-            list.insertAdjacentHTML("beforeend", renderImage(data.hits));
-            lightbox.refresh();
-            input.value = "";
-        } else {
-            iziToast.error({
-                position: "topRight",
-                message: "Sorry, there are no images matching your search query. Please try again!",
+        if (!hits.length) return iziToast.error({
+            message: "Sorry, there are no images matching your search query. Please try again!",
+        });
+         
+        refs.list.insertAdjacentHTML("beforeend", renderImage(hits));
+        lightbox.refresh();
+        smoothScroll();
+        if (params.page * params.perPage >= params.total) {
+            iziToast.info({
+                message: "We're sorry, but you've reached the end of search results"
             });
+            toggleLoadMore(false);
+        } else {
+            toggleLoadMore(true);
         }
     } catch (error) {
-        console.error("Помилка при запиті:", error);
-        iziToast.error({
-            position: "topRight",
-            message: "Sorry, the request can't be completed at this time. Please try again",
-        });
-    } finally {
-        loader.classList.add("visually-hidden");
+      } finally {
+         toggleLoader(false);
     }
-});
+}
+
+const toggleLoader = (show) => refs.loader.classList.toggle("visually-hidden", !show);
+const toggleLoadMore = (show) => refs.loadMoreBtn.classList.toggle("visually-hidden", !show);
+const smoothScroll = () => window.scrollBy({top: refs.list.firstElementChild.getBoundingClientRect().height * 2, behavior: "smooth" });
+    
+   
+
 
 
